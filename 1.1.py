@@ -7,6 +7,9 @@ import math
 
 farmer_image = pyglet.resource.image("farmer.png")  #loads images
 pig_image = pyglet.resource.image("pig.png")
+angry_pig_image = pyglet.resource.image("angrypig.png")
+
+
 
 def center_image(image):                    #changes the images anchors to the center of the image
     image.anchor_x = image.width/2
@@ -79,6 +82,7 @@ class PlayerObject(PhysicalObject):
         super(PlayerObject, self).__init__(img=farmer_image,*args,**kwargs)
 
         self.speed = 400
+        self.score = 1000
 
         self.keys = dict(left=False, right=False, up=False, down=False)
 
@@ -102,6 +106,8 @@ class PlayerObject(PhysicalObject):
         elif symbol == key.RIGHT:
             self.keys['right'] = False
 
+    
+
     def update(self, dt):
         super(PlayerObject, self)
 
@@ -116,24 +122,24 @@ class PlayerObject(PhysicalObject):
 
         if self.x > game_width - 50:    #stops player from leaving the screen
             self.x -= self.speed * dt
-        if self.x < 0:
+        if self.x < self.image.width/2:
             self.x += self.speed * dt
         if self.y > game_height:
             self.y -= self.speed * dt
-        if self.y < 0:
+        if self.y < self.image.height/2:
             self.y += self.speed * dt
 
 player = PlayerObject(x=400, y=300, batch=main_batch)   #places instance of player, adds player to the batch
 player_position = player.x, player.y
 
-def pigs(num_pigs):
+def spawn_pigs(num_pigs, image):
     pigs = []
     for i in range(num_pigs):
         pig_x, pig_y = player_position      #checks if pig is spawning on the player
         while distance((pig_x, pig_y), player_position) < 300:
-            pig_x = random.randint(1,game_width-100)    #randomly spawns pigs
-            pig_y = random.randint(1,game_height-100)
-        new_pig = PhysicalObject(img=pig_image, x=pig_x, y=pig_y, batch=main_batch)
+            pig_x = random.randint(20,game_width-120)    #randomly spawns pigs
+            pig_y = random.randint(20,game_height-120)
+        new_pig = PhysicalObject(img=image, x=pig_x, y=pig_y, batch=main_batch)
         new_pig.velocity_x = random.random()*400    #gives each pig a random speed and direction
         new_pig.velocity_y = random.random()*400
         pigs.append(new_pig)    #adds pig to pigs
@@ -144,31 +150,39 @@ def update(dt):
     for obj in game_objects:    #updates all objects
         obj.update(dt)
 
-    for pig in pigs:    #if pigs are dead they are removed from the drawing list
-        for to_remove in [pig for pig in pigs if pig.dead]:
+    for to_remove in pigs:    #if pigs are dead they are removed from the drawing list
+        if to_remove.dead:
             to_remove.delete()
             pigs.remove(to_remove)
-
-    for i in xrange(len(pigs)):     #checks collisions of player against every pig BROKEN 
-        obj_1 = player
-        obj_2 = pigs[i]
-
-        if not obj_2.dead:
-            if obj_2.collides_with(obj_1):
-                obj_2.handle_collision_with(obj_1)
-
+            game_objects.remove(to_remove)
     
 
+            
+    for i in range(len(pigs)):     #checks collisions of player against every pig  
 
-level_label = pyglet.text.Label(text="Level 1", x=400, y=575, anchor_x='center', batch=main_batch) #Level label
+        if not pigs[i].dead:
+            if pigs[i].collides_with(player):
+                pigs[i].handle_collision_with(player)
+
+    for i in range(len(angry_pigs)):
+
+        if not player.dead:
+            if angry_pigs[i].collides_with(player):
+                player.handle_collision_with(angry_pigs[i])
+                
+    player.score -= 1
 
 
-pigs = pigs(10)     #spawns 10 pigs
+score_label = pyglet.text.Label(text=("Score:" + str(player.score)) , x=100, y=600, bold=True, font_size=25, color=(0,0,0,255), batch=main_batch) #Level label
+
+numpigs = 10
+pigs = spawn_pigs(numpigs, pig_image)     #spawns 10 pigs
+angry_pigs = spawn_pigs(4, angry_pig_image)
 
 
 game_window.push_handlers(player)   #checks keystrokes
 
-game_objects = [player] + pigs
+game_objects = [player] + pigs + angry_pigs
 
 @game_window.event
 def on_draw():      #draws everything        
@@ -177,6 +191,7 @@ def on_draw():      #draws everything
     game_window.clear()
 
     main_batch.draw()
+    player.score -= 1
     
 
 pyglet.clock.schedule_interval(update, 1/120.0) #sets speed of graphics(dt)
