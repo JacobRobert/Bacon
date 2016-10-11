@@ -19,6 +19,7 @@ def center_image(image):                    #changes the images anchors to the c
 center_image(farmer_image)
 center_image(pig_image)
 
+
 def distance(pt_1=(0,0), pt_2=(0,0)):   #finds distance between two points
     return math.sqrt(
         (pt_1[0] - pt_2[0]) ** 2 +
@@ -160,7 +161,7 @@ game_window.push_handlers(player)   #checks keystrokes
 
 numpigs = 10    #sets # of pigs to spawn
 pigs = spawn_pigs(numpigs, pig_image)           #spawns 10 pigs
-angry_pigs = spawn_pigs(4, angry_pig_image)     #spawns 4 angry pigs
+angry_pigs = spawn_pigs(3, angry_pig_image)     #spawns 4 angry pigs
 score_label = pyglet.text.Label(text=("Score:" + str(player.score)) , x=100, y=600, bold=True, font_size=25, color=(0,0,0,255), batch=main_batch) #Displays score
 final_score_label = pyglet.text.Label(x=700, y=300,anchor_x='center', bold=True, font_size=35, color=(0,0,0,255), batch=main_batch) #displays Final Score
 
@@ -168,10 +169,13 @@ game_objects = [player] + pigs + angry_pigs #list of all updating objects
 
 over = False
 def update(dt):
+    global over
+
     for obj in game_objects:    #updates all objects
         obj.update(dt)
 
-    score_label.text = "Score:" + str(player.score)
+    if over == False:
+        score_label.text = "Score:" + str(player.score)
 
     for to_remove in pigs:              #if pigs are dead they are removed from the drawing and updating lists list
         if to_remove.dead:
@@ -190,14 +194,16 @@ def update(dt):
             if angry_pigs[i].collides_with(player):
                 player.kill()
 
-    #if len(pigs) == 0 and over==False:              #Adds pigs if no catchable pigs are left
-    #    new_pigs = spawn_pigs(10, pig_image)
-    #    new_angry_pigs = spawn_pigs(4, pig_image)
-    #    angry_pigs.append(new_angry_pigs)
-    #    game_objects.append(angry_pigs)
+    if len(pigs) == 0 and over==False:              #Adds pigs if no catchable pigs are left
+        new_pigs = spawn_pigs(10, pig_image)
+        new_angry_pigs = spawn_pigs(3, angry_pig_image)
+        pigs.extend(new_pigs)
+        angry_pigs.extend(new_angry_pigs)
+        game_objects.extend(new_pigs)
+        game_objects.extend(new_angry_pigs)
+        print "respawn"
 
     if player.dead == True and over == False:       #Checks if the player is dead and displays final score
-        global over
         over = True
         final_score_label.text = "Final Score:" + str(player.score)
 
