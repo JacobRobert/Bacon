@@ -4,7 +4,6 @@ from pyglet.window import key
 import random
 import math
 
-
 farmer_image = pyglet.resource.image("farmer.png")  #loads images
 pig_image = pyglet.resource.image("pig.png")
 angry_pig_image = pyglet.resource.image("angrypig.png")
@@ -24,6 +23,7 @@ def distance(pt_1=(0,0), pt_2=(0,0)):   #finds distance between two points
     return math.sqrt(
         (pt_1[0] - pt_2[0]) ** 2 +
         (pt_1[1] - pt_2[1]) ** 2)
+
 
 def spawn_pigs(num_pigs, image):    #Function that spawns pigs
     pigs = []
@@ -148,70 +148,80 @@ class PlayerObject(PhysicalObject):     #creates player class
     def kill(self):
         self.dead = True
 
-main_batch   = pyglet.graphics.Batch()      #makes a group of everything that will be drawn
+class Game(object):
 
-game_width  = 1400      #Sets game window size
-game_height = 700
-game_window = pyglet.window.Window(game_width, game_height) #opens window
-game_window.set_caption("Bacon")
+    main_batch   = pyglet.graphics.Batch()      #makes a group of everything that will be drawn
 
-player = PlayerObject(x=400, y=300, batch=main_batch)   #places instance of player, adds player to the batch
-player_position = player.x, player.y
-game_window.push_handlers(player)   #checks keystrokes
+    game_width  = 1400      #Sets game window size
+    game_height = 700
+    game_window = pyglet.window.Window(game_width, game_height) #opens window
+    game_window.set_caption("Bacon")
 
-numpigs = 10    #sets # of pigs to spawn
-pigs = spawn_pigs(numpigs, pig_image)           #spawns 10 pigs
-angry_pigs = spawn_pigs(3, angry_pig_image)     #spawns 4 angry pigs
-score_label = pyglet.text.Label(text=("Score:" + str(player.score)) , x=100, y=600, bold=True, font_size=25, color=(0,0,0,255), batch=main_batch) #Displays score
-final_score_label = pyglet.text.Label(x=700, y=300,anchor_x='center', bold=True, font_size=35, color=(0,0,0,255), batch=main_batch) #displays Final Score
+    player = PlayerObject(x=400, y=300, batch=main_batch)   #places instance of player, adds player to the batch
+    player_position = player.x, player.y
+    game_window.push_handlers(player)   #checks keystrokes
 
-game_objects = [player] + pigs + angry_pigs #list of all updating objects
+    numpigs = 10    #sets # of pigs to spawn
+    pigs = spawn_pigs(numpigs, pig_image)           #spawns 10 pigs
+    angry_pigs = spawn_pigs(3, angry_pig_image)     #spawns 4 angry pigs
+    score_label = pyglet.text.Label(text=("Score:" + str(player.score)) , x=100, y=600, bold=True, font_size=25, color=(0,0,0,255), batch=main_batch) #Displays score
+    final_score_label = pyglet.text.Label(x=700, y=300,anchor_x='center', bold=True, font_size=35, color=(0,0,0,255), batch=main_batch) #displays Final Score
 
-over = False
-def update(dt):
-    global over
+    game_objects = [player] + pigs + angry_pigs #list of all updating objects
 
-    for obj in game_objects:    #updates all objects
-        obj.update(dt)
+    over = False
+    def update(dt):
+        global over
 
-    if over == False:
-        score_label.text = "Score:" + str(player.score)
+        for obj in game_objects:    #updates all objects
+            obj.update(dt)
 
-    for to_remove in pigs:              #if pigs are dead they are removed from the drawing and updating lists list
-        if to_remove.dead:
-            to_remove.delete()
-            pigs.remove(to_remove)
-            game_objects.remove(to_remove)
+        if over == False:
+            score_label.text = "Score:" + str(player.score)
 
-    for i in range(len(pigs)):                  #checks collisions of player against every pig
-        if not pigs[i].dead:
-            if pigs[i].collides_with(player):
-                pigs[i].handle_collision_with(player)
-                player.handle_collision_with(pigs[i])
+        for to_remove in pigs:              #if pigs are dead they are removed from the drawing and updating lists list
+            if to_remove.dead:
+                to_remove.delete()
+                pigs.remove(to_remove)
+                game_objects.remove(to_remove)
 
-    for i in range(len(angry_pigs)):            #checks collisions between player and angry pigs
-        if not player.dead:
-            if angry_pigs[i].collides_with(player):
-                player.kill()
+        for i in range(len(pigs)):                  #checks collisions of player against every pig
+            if not pigs[i].dead:
+                if pigs[i].collides_with(player):
+                    pigs[i].handle_collision_with(player)
+                    player.handle_collision_with(pigs[i])
 
-    if len(pigs) == 0 and over==False:              #Adds pigs if no catchable pigs are left
-        new_pigs = spawn_pigs(10, pig_image)
-        new_angry_pigs = spawn_pigs(3, angry_pig_image)
-        pigs.extend(new_pigs)
-        angry_pigs.extend(new_angry_pigs)
-        game_objects.extend(new_pigs)
-        game_objects.extend(new_angry_pigs)
-        print "respawn"
+        for i in range(len(angry_pigs)):            #checks collisions between player and angry pigs
+            if not player.dead:
+                if angry_pigs[i].collides_with(player):
+                    player.kill()
 
-    if player.dead == True and over == False:       #Checks if the player is dead and displays final score
-        over = True
-        final_score_label.text = "Final Score:" + str(player.score)
+        if len(pigs) == 0 and over==False:              #Adds pigs if no catchable pigs are left
+            new_pigs = spawn_pigs(10, pig_image)
+            new_angry_pigs = spawn_pigs(3, angry_pig_image)
+            pigs.extend(new_pigs)
+            angry_pigs.extend(new_angry_pigs)
+            game_objects.extend(new_pigs)
+            game_objects.extend(new_angry_pigs)
+            print "respawn"
 
-@game_window.event
-def on_draw():               #draws everything
-    game_window.clear()
-    field_image.blit(0,0)
-    main_batch.draw()
+        if player.dead == True and over == False:       #Checks if the player is dead and displays final score
+            over = True
+            final_score_label.text = "Final Score:" + str(player.score)
 
-pyglet.clock.schedule_interval(update, 1/120.0) #sets speed of graphics(dt)
-pyglet.app.run()            #Runs Loops
+
+    @game_window.event
+    def on_draw():               #draws everything
+        game_window.clear()
+        field_image.blit(0,0)
+        main_batch.draw()
+
+    def tick(self):
+        pyglet.clock.schedule_interval(self.update, 1/120.0) #sets speed of graphics(dt)
+    pyglet.app.run()            #Runs Loops
+
+while True:
+    game = Game()
+    while not over:
+        game.tick()
+        sleep(1)
