@@ -197,7 +197,7 @@ class Game(object):
 
         if self.player.dead == True and self.over == False:       #Checks if the player is dead and displays final score
             self.final_score_label.text = "Final Score:" + str(self.player.score)
-            with open('saves.txt', 'w') as f:
+            with open('saves.txt', 'a') as f:
                 f.write(str(self.player.score) + "\n")
             self.over = True
 
