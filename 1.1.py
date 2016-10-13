@@ -25,21 +25,6 @@ def distance(pt_1=(0,0), pt_2=(0,0)):   #finds distance between two points
         (pt_1[1] - pt_2[1]) ** 2)
 
 
-def spawn_pigs(num_pigs, image):    #Function that spawns pigs
-    pigs = []
-    for i in range(num_pigs):
-        pig_x, pig_y = player_position      #checks if pig is spawning on the player
-        while distance((pig_x, pig_y), player_position) < 300:
-            pig_x = random.randint(100,game_width-120)    #spawns pigs at random locations
-            pig_y = random.randint(100,game_height-120)
-        pig_rotation = random.randint(-20,20)
-        pig_scale = random.randint(7,13)/10.0
-        new_pig = PhysicalObject(img=image, x=pig_x, y=pig_y, batch=main_batch, rotation=pig_rotation, scale=pig_scale)
-        new_pig.velocity_x = random.random()*400    #gives each pig a random speed and direction
-        new_pig.velocity_y = random.random()*400
-        pigs.append(new_pig)    #adds pig to pigs
-    return pigs
-
 class PhysicalObject(pyglet.sprite.Sprite):     #basic object class (pig)
 
     def __init__(self, rotation=0, scale=1, *args, **kwargs):
@@ -60,10 +45,14 @@ class PhysicalObject(pyglet.sprite.Sprite):     #basic object class (pig)
         self.totter()       #rotates object
 
     def check_bounds(self):         #if the object hits the edge of the window, the object reverses direction
-        min_x = self.image.width/2 + 80
-        min_y = self.image.height/2 + 80
-        max_x = game_width - self.image.width/2 - 80
-        max_y = game_height - self.image.height/2 - 80
+        # min_x = self.image.width/2 + 80
+        # min_y = self.image.height/2 + 80
+        max_x = self.width - self.image.width/2 - 80
+        max_y = self.height - self.image.height/2 - 80
+        min_y = 0
+        min_x = 0
+        max_y = window.height
+        max_x = window.width
 
         if self.x < min_x or self.x > max_x:
             self.velocity_x = self.velocity_x * -1
@@ -130,13 +119,13 @@ class PlayerObject(PhysicalObject):     #creates player class
         if self.keys['down']:
             self.y -= self.speed * dt
 
-        if self.x > game_width - 50:    #stops player from leaving the screen
+        if self.x > window.width - 50:    #stops player from leaving the screen
             self.x -= self.speed * dt
-        if self.x < self.image.width/2:
+        if self.x < 0:
             self.x += self.speed * dt
-        if self.y > game_height:
+        if self.y > window.height:
             self.y -= self.speed * dt
-        if self.y < self.image.height/2:
+        if self.y < 0:
             self.y += self.speed * dt
 
         if self.score > 0:
@@ -149,79 +138,109 @@ class PlayerObject(PhysicalObject):     #creates player class
         self.dead = True
 
 class Game(object):
+    def __init__(self, window):
+        self.window = window
+        self.main_batch = pyglet.graphics.Batch()      #makes a group of everything that will be drawn
 
-    main_batch   = pyglet.graphics.Batch()      #makes a group of everything that will be drawn
+        self.player = PlayerObject(x=400, y=300, batch=self.main_batch)   #places instance of player, adds player to the batch
+        self.window.window.push_handlers(self.player)   #checks keystrokes
+        self.window.window.push_handlers(self)
 
-    game_width  = 1400      #Sets game window size
-    game_height = 700
-    game_window = pyglet.window.Window(game_width, game_height) #opens window
-    game_window.set_caption("Bacon")
+        self.pigs = self.spawn_pigs(10, pig_image)
+        self.angry_pigs = self.spawn_pigs(3, angry_pig_image)
+        self.score_label = pyglet.text.Label(text=("Score:" + str(self.player.score)) , x=100, y=600, bold=True, font_size=25, color=(0,0,0,255), batch=self.main_batch) #Displays score
+        self.final_score_label = pyglet.text.Label(x=700, y=300,anchor_x='center', bold=True, font_size=35, color=(0,0,0,255), batch=self.main_batch) #displays Final Score
 
-    player = PlayerObject(x=400, y=300, batch=main_batch)   #places instance of player, adds player to the batch
-    player_position = player.x, player.y
-    game_window.push_handlers(player)   #checks keystrokes
+        self.over = False
 
-    numpigs = 10    #sets # of pigs to spawn
-    pigs = spawn_pigs(numpigs, pig_image)           #spawns 10 pigs
-    angry_pigs = spawn_pigs(3, angry_pig_image)     #spawns 4 angry pigs
-    score_label = pyglet.text.Label(text=("Score:" + str(player.score)) , x=100, y=600, bold=True, font_size=25, color=(0,0,0,255), batch=main_batch) #Displays score
-    final_score_label = pyglet.text.Label(x=700, y=300,anchor_x='center', bold=True, font_size=35, color=(0,0,0,255), batch=main_batch) #displays Final Score
+    def _game_objects(self):
+        return [self.player] + self.pigs + self.angry_pigs
 
-    game_objects = [player] + pigs + angry_pigs #list of all updating objects
+    def cleanup(self):
+        self.over = True
+        self.window.window.pop_handlers()
+        self.window.window.pop_handlers()
 
-    over = False
-    def update(dt):
-        global over
 
-        for obj in game_objects:    #updates all objects
+    def update(self, dt):
+        for obj in self._game_objects():    #updates all objects
             obj.update(dt)
 
-        if over == False:
-            score_label.text = "Score:" + str(player.score)
+        if self.over == False:
+            self.score_label.text = "Score:" + str(self.player.score)
 
-        for to_remove in pigs:              #if pigs are dead they are removed from the drawing and updating lists list
+        for to_remove in self.pigs:              #if pigs are dead they are removed from the drawing and updating lists list
             if to_remove.dead:
                 to_remove.delete()
-                pigs.remove(to_remove)
-                game_objects.remove(to_remove)
+                self.pigs.remove(to_remove)
 
-        for i in range(len(pigs)):                  #checks collisions of player against every pig
-            if not pigs[i].dead:
-                if pigs[i].collides_with(player):
-                    pigs[i].handle_collision_with(player)
-                    player.handle_collision_with(pigs[i])
+        for pig in self.pigs:                  #checks collisions of player against every pig
+            if not pig.dead:
+                if pig.collides_with(self.player):
+                    pig.handle_collision_with(self.player)
+                    self.player.handle_collision_with(pig)
 
-        for i in range(len(angry_pigs)):            #checks collisions between player and angry pigs
-            if not player.dead:
-                if angry_pigs[i].collides_with(player):
-                    player.kill()
+        for pig in self.angry_pigs:            #checks collisions between player and angry pigs
+            if not self.player.dead:
+                if pig.collides_with(self.player):
+                    self.player.kill()
 
-        if len(pigs) == 0 and over==False:              #Adds pigs if no catchable pigs are left
-            new_pigs = spawn_pigs(10, pig_image)
-            new_angry_pigs = spawn_pigs(3, angry_pig_image)
-            pigs.extend(new_pigs)
-            angry_pigs.extend(new_angry_pigs)
-            game_objects.extend(new_pigs)
-            game_objects.extend(new_angry_pigs)
+        if len(self.pigs) == 0 and self.over==False:              #Adds pigs if no catchable pigs are left
+            new_pigs = self.spawn_pigs(10, pig_image)
+            new_angry_pigs = self.spawn_pigs(3, angry_pig_image)
+            self.pigs.extend(new_pigs)
+            self.angry_pigs.extend(new_angry_pigs)
             print "respawn"
 
-        if player.dead == True and over == False:       #Checks if the player is dead and displays final score
-            over = True
-            final_score_label.text = "Final Score:" + str(player.score)
+        if self.player.dead == True and self.over == False:       #Checks if the player is dead and displays final score
+            self.final_score_label.text = "Final Score:" + str(self.player.score)
+            self.over = True
 
-
-    @game_window.event
-    def on_draw():               #draws everything
-        game_window.clear()
+    def on_draw(self):               #draws everything
+        self.window.window.clear()
         field_image.blit(0,0)
-        main_batch.draw()
+        self.main_batch.draw()
 
-    def tick(self):
-        pyglet.clock.schedule_interval(self.update, 1/120.0) #sets speed of graphics(dt)
-    pyglet.app.run()            #Runs Loops
 
-while True:
-    game = Game()
-    while not over:
-        game.tick()
-        sleep(1)
+    def spawn_pigs(self, num_pigs, image):    #Function that spawns pigs
+        pigs = []
+        for i in range(num_pigs):
+            pig_x, pig_y = self.player.x, self.player.y      #checks if pig is spawning on the player
+            while distance((pig_x, pig_y), (self.player.x, self.player.y)) < 300:
+                pig_x = random.randint(100, self.window.width-120)    #spawns pigs at random locations
+                pig_y = random.randint(100, self.window.height-120)
+            pig_rotation = random.randint(-20,20)
+            pig_scale = random.randint(7,13)/10.0
+            new_pig = PhysicalObject(img=image, x=pig_x, y=pig_y, batch=self.main_batch, rotation=pig_rotation, scale=pig_scale)
+            new_pig.velocity_x = random.random()*400    #gives each pig a random speed and direction
+            new_pig.velocity_y = random.random()*400
+            pigs.append(new_pig)    #adds pig to pigs
+        return pigs
+
+
+class Window(object):
+    def __init__(self):
+        self.width = 1400
+        self.height = 700
+        self.window = pyglet.window.Window(self.width, self.height) #opens window
+        self.window.set_caption("Bacon")
+        self.restarting = True
+        self.game = None
+        self.restart(0)
+
+    def restart(self, dt):
+        self.restarting = False
+        if self.game is not None:
+            self.game.cleanup()
+        self.game = Game(self)
+
+    def update(self, dt):
+        self.game.update(dt)
+        if self.game.over and self.restarting is False:
+            self.restarting = True
+            pyglet.clock.schedule_once(self.restart, 5)
+
+
+window = Window()
+pyglet.clock.schedule_interval(window.update, 1/120.0) #sets speed of graphics(dt)
+pyglet.app.run()            #Runs Loops
