@@ -84,6 +84,7 @@ class PlayerObject(PhysicalObject):     #creates player class
 
         self.speed = 200    #speed of movement
         self.score = 500   #Initial score
+        self.ended = False
 
         self.keys = dict(left=False, right=False, up=False, down=False)
 
@@ -96,6 +97,8 @@ class PlayerObject(PhysicalObject):     #creates player class
             self.keys['left'] = True
         elif symbol == key.RIGHT:
             self.keys['right'] = True
+        elif symbol == key.R:
+            self.ended = True
 
     def on_key_release(self, symbol, modifiers): #checks if buttons are released
         if symbol == key.UP:
@@ -132,7 +135,7 @@ class PlayerObject(PhysicalObject):     #creates player class
             self.score -= 1
 
     def handle_collision_with(self, other_object):
-        self.score += 100
+        self.score += 200
 
     def kill(self):
         self.dead = True
@@ -194,6 +197,8 @@ class Game(object):
 
         if self.player.dead == True and self.over == False:       #Checks if the player is dead and displays final score
             self.final_score_label.text = "Final Score:" + str(self.player.score)
+            with open('saves.txt', 'w') as f:
+                f.write(str(self.player.score) + "\n")
             self.over = True
 
     def on_draw(self):               #draws everything
