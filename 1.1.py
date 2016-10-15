@@ -8,7 +8,6 @@ farmer_image = pyglet.resource.image("farmer.png")  #loads images
 pig_image = pyglet.resource.image("pig.png")
 angry_pig_image = pyglet.resource.image("angrypig.png")
 field_image = pyglet.resource.image("field.png")
-game_over = pyglet.resource.image("game over.png")
 
 
 def center_image(image):                    #changes the images anchors to the center of the image
@@ -23,6 +22,30 @@ def distance(pt_1=(0,0), pt_2=(0,0)):   #finds distance between two points
     return math.sqrt(
         (pt_1[0] - pt_2[0]) ** 2 +
         (pt_1[1] - pt_2[1]) ** 2)
+
+
+class TypedName(object):
+    def __init__(self):
+        self.text = ''
+        self.typing = False
+
+typed_name = TypedName()
+
+@staticmethod
+def on_text(text):
+    if typed_name.typing == True:
+        typed_name.text = text
+
+@staticmethod
+def on_key_press(symbol,modifiers):
+    if symbol == key.ENTER:
+        window.game.player.name = typed_name
+        typed_name = ''
+        window.pop_handlers()
+
+    if symbol == key.BACKSPACE:
+        typed_name.text = typed_name.text[:-1]
+        window.game.player.name = typed_name
 
 
 class PhysicalObject(pyglet.sprite.Sprite):     #basic object class (pig)
@@ -200,6 +223,7 @@ class Game(object):
             with open('saves.txt', 'a') as f:
                 f.write(str(self.player.score) + "\n")
             self.over = True
+            f.close()
 
     def on_draw(self):               #draws everything
         self.window.window.clear()
