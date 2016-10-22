@@ -1,3 +1,5 @@
+import string
+
 import pyglet
 from pyglet.gl import *
 from pyglet.window import key
@@ -112,6 +114,8 @@ class PlayerObject(PhysicalObject):     #creates player class
         self.keys = dict(left=False, right=False, up=False, down=False)
 
     def on_key_press(self, symbol, modifiers): #checks what buttons are being pressed
+        if text_entry.collect_char(symbol):
+            return
         if symbol == key.UP:
             self.keys['up'] = True
         elif symbol == key.DOWN:
@@ -176,8 +180,10 @@ class Game(object):
         self.angry_pigs = self.spawn_pigs(3, angry_pig_image)
         self.score_label = pyglet.text.Label(text=("Score:" + str(self.player.score)) , x=100, y=600, bold=True, font_size=25, color=(0,0,0,255), batch=self.main_batch) #Displays score
         self.final_score_label = pyglet.text.Label(x=700, y=300,anchor_x='center', bold=True, font_size=35, color=(0,0,0,255), batch=self.main_batch) #displays Final Score
+        text_entry.attach_batch(self.main_batch)
 
         self.over = False
+        self.fully_over = False
 
     def _game_objects(self):
         return [self.player] + self.pigs + self.angry_pigs
@@ -186,7 +192,6 @@ class Game(object):
         self.over = True
         self.window.window.pop_handlers()
         self.window.window.pop_handlers()
-
 
     def update(self, dt):
         for obj in self._game_objects():    #updates all objects
@@ -220,10 +225,34 @@ class Game(object):
 
         if self.player.dead == True and self.over == False:       #Checks if the player is dead and displays final score
             self.final_score_label.text = "Final Score:" + str(self.player.score)
-            with open('saves.txt', 'a') as f:
-                f.write(str(self.player.score) + "\n")
             self.over = True
-            f.close()
+            text_entry.start_gathering()
+
+        if self.over is True and self.fully_over is False:
+            if text_entry.is_gathering_text:
+                return
+            with open('saves.txt', 'a') as f:
+                f.write(str(self.player.score) + ' ' + text_entry.get_current_text() + "\n" )
+            text_entry.clear()
+            self.fully_over = True
+            pyglet.text.Label(
+                text='High Scores',
+                x=700,
+                y=650,
+                anchor_x='center',
+                bold=True,
+                font_size=35,
+                color=(0, 0, 0, 255),
+                batch=self.main_batch)
+            pyglet.text.Label(
+                text='High Scores',
+                x=700,
+                y=600,
+                anchor_x='center',
+                bold=True,
+                font_size=10,
+                color=(0, 0, 0, 255),
+                batch=self.main_batch)
 
     def on_draw(self):               #draws everything
         self.window.window.clear()
@@ -265,9 +294,55 @@ class Window(object):
 
     def update(self, dt):
         self.game.update(dt)
-        if self.game.over and self.restarting is False:
+        if self.game.fully_over and self.restarting is False:
             self.restarting = True
             pyglet.clock.schedule_once(self.restart, 5)
+
+
+class TextEntry(object):
+    def __init__(self):
+        self.chars = []
+        self.is_gathering_text = False
+
+    def get_current_text(self):
+        return ''.join(self.chars)
+
+    def attach_batch(self, batch):
+        self.label = pyglet.text.Label(
+            x=700,
+            y=350,
+            anchor_x='center',
+            bold=True,
+            font_size=35,
+            color=(0, 0, 0, 255),
+            batch=batch)
+
+    def start_gathering(self):
+        self.is_gathering_text = True
+
+    def clear(self):
+        self.chars[:] = []
+        self.label.text = ''
+
+    def collect_char(self, symbol):
+        letter = key.symbol_string(symbol)
+
+        if letter in string.ascii_uppercase + string.digits:
+            self.chars.append(letter)
+        if letter == 'RETURN':
+            self.is_gathering_text = False
+        if letter == 'BACKSPACE':
+            if len(self.chars) is not 0:
+                self.chars.pop()
+        if letter == 'SPACE':
+            self.chars.append(' ')
+        if letter in list(map(lambda e: '_'+e, string.digits)):
+            self.chars.append(letter.strip('_'))
+
+        self.label.text = self.get_current_text()
+        return self.is_gathering_text
+
+text_entry = TextEntry()
 
 
 window = Window()
