@@ -21,8 +21,9 @@ def update(dt):
         line_list = []
     for line in lines:
         linestr = line.strip()
-        lineint = int(linestr)
-        line_list.append(lineint)
+        score_str, name = linestr.split(' ', 1)
+        score = int(score_str)
+        line_list.append((score, name))
     score_list = sorted(line_list,reverse=True)
 
     scores = 10
@@ -30,7 +31,8 @@ def update(dt):
         scores = len(score_list)
 
     for i in range(scores):
-        labels[i].text = positions[i] + str(score_list[i])
+        score, name = score_list[i]
+        labels[i].text = '{:10}{:8} {:>}'.format(positions[i], score, name)
 
     f.close()
 
