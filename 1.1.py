@@ -26,30 +26,6 @@ def distance(pt_1=(0,0), pt_2=(0,0)):   #finds distance between two points
         (pt_1[1] - pt_2[1]) ** 2)
 
 
-class TypedName(object):
-    def __init__(self):
-        self.text = ''
-        self.typing = False
-
-typed_name = TypedName()
-
-@staticmethod
-def on_text(text):
-    if typed_name.typing == True:
-        typed_name.text = text
-
-@staticmethod
-def on_key_press(symbol,modifiers):
-    if symbol == key.ENTER:
-        window.game.player.name = typed_name
-        typed_name = ''
-        window.pop_handlers()
-
-    if symbol == key.BACKSPACE:
-        typed_name.text = typed_name.text[:-1]
-        window.game.player.name = typed_name
-
-
 class PhysicalObject(pyglet.sprite.Sprite):     #basic object class (pig)
 
     def __init__(self, rotation=0, scale=1, *args, **kwargs):
@@ -70,14 +46,10 @@ class PhysicalObject(pyglet.sprite.Sprite):     #basic object class (pig)
         self.totter()       #rotates object
 
     def check_bounds(self):         #if the object hits the edge of the window, the object reverses direction
-        # min_x = self.image.width/2 + 80
-        # min_y = self.image.height/2 + 80
-        max_x = self.width - self.image.width/2 - 80
-        max_y = self.height - self.image.height/2 - 80
-        min_y = 0
-        min_x = 0
-        max_y = window.height
-        max_x = window.width
+        min_y = 40
+        min_x = 25
+        max_y = window.height - 40
+        max_x = window.width  - 25
 
         if self.x < min_x or self.x > max_x:
             self.velocity_x = self.velocity_x * -1
@@ -178,9 +150,10 @@ class Game(object):
 
         self.pigs = self.spawn_pigs(10, pig_image)
         self.angry_pigs = self.spawn_pigs(3, angry_pig_image)
-        self.score_label = pyglet.text.Label(text=("Score:" + str(self.player.score)) , x=100, y=600, bold=True, font_size=25, color=(0,0,0,255), batch=self.main_batch) #Displays score
-        self.final_score_label = pyglet.text.Label(x=700, y=300,anchor_x='center', bold=True, font_size=35, color=(0,0,0,255), batch=self.main_batch) #displays Final Score
+        self.score_label = pyglet.text.Label(text=("Score:" + str(self.player.score)) , x=100, y=600, bold=True, font_size=25, color=(0,0,0,255), font_name = 'Monospac821 BT', batch=self.main_batch) #Displays score
+        self.final_score_label = pyglet.text.Label(x=700, y=300,anchor_x='center', bold=True, font_size=35, color=(0,0,0,255), font_name = 'Monospac821 BT', batch=self.main_batch) #displays Final Score
         text_entry.attach_batch(self.main_batch)
+        self.final_name_label = pyglet.text.Label(x=400, y=350,anchor_x='center', bold=True, font_size=35, color=(0,0,0,255), font_name = 'Monospac821 BT', batch=self.main_batch)
 
         self.over = False
         self.fully_over = False
@@ -225,6 +198,7 @@ class Game(object):
 
         if self.player.dead == True and self.over == False:       #Checks if the player is dead and displays final score
             self.final_score_label.text = "Final Score:" + str(self.player.score)
+            self.final_name_label.text = "Name:"
             self.over = True
             text_entry.start_gathering()
 
@@ -235,24 +209,7 @@ class Game(object):
                 f.write(str(self.player.score) + ' ' + text_entry.get_current_text() + "\n" )
             text_entry.clear()
             self.fully_over = True
-            pyglet.text.Label(
-                text='High Scores',
-                x=700,
-                y=650,
-                anchor_x='center',
-                bold=True,
-                font_size=35,
-                color=(0, 0, 0, 255),
-                batch=self.main_batch)
-            pyglet.text.Label(
-                text='High Scores',
-                x=700,
-                y=600,
-                anchor_x='center',
-                bold=True,
-                font_size=10,
-                color=(0, 0, 0, 255),
-                batch=self.main_batch)
+
 
     def on_draw(self):               #draws everything
         self.window.window.clear()
@@ -315,6 +272,7 @@ class TextEntry(object):
             bold=True,
             font_size=35,
             color=(0, 0, 0, 255),
+            font_name = 'Monospac821 BT',
             batch=batch)
 
     def start_gathering(self):
@@ -326,6 +284,9 @@ class TextEntry(object):
 
     def collect_char(self, symbol):
         letter = key.symbol_string(symbol)
+
+        if self.is_gathering_text == False:
+            return False
 
         if letter in string.ascii_uppercase + string.digits:
             self.chars.append(letter)
